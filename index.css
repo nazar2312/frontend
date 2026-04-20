@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Manrope", sans-serif;
+  
+  --color-surface: #ffffff;
+  --color-on-surface: #000000;
+  --color-on-surface-variant: #404040;
+  --color-outline: #a3a3a3;
+  --color-surface-container: #f5f5f5;
+  --color-surface-container-low: #fafafa;
+  --color-surface-container-high: #e5e5e5;
+  --color-primary: #000000;
+  --color-primary-hover: #171717;
+}
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-white text-on-surface font-sans antialiased selection:bg-black selection:text-white;
+  }
+}
+
+.glass-panel {
+  @apply backdrop-blur-3xl bg-white/90 border-b border-black/5 shadow-sm;
+}
+
+.liquid-glass-card {
+  @apply backdrop-blur-xl bg-white/70 border border-black/10 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05)] rounded-3xl transition-all duration-500 hover:bg-white/90 hover:shadow-[0_20px_48px_-8px_rgba(0,0,0,0.08)] hover:scale-[1.005];
+}
+
+.liquid-glass-button {
+  @apply backdrop-blur-md bg-black/5 border border-black/5 shadow-sm transition-all duration-300 hover:bg-black hover:text-white active:scale-95 disabled:opacity-50;
+}
+
+.liquid-glass-input {
+  @apply bg-white border border-black/10 shadow-sm transition-all duration-300 focus:border-black focus:ring-4 focus:ring-black/5 outline-none;
+}
+
+.liquid-glass-nav-item {
+  @apply transition-all duration-300 hover:bg-black/10 hover:text-black active:scale-95;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
