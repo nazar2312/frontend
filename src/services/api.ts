@@ -22,6 +22,8 @@ function userFromToken(token: string, usernameOverride?: string): User {
   };
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+
 class ApiService {
   setToken(token: string | null) {
     accessToken = token;
@@ -41,7 +43,7 @@ class ApiService {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
       credentials: 'include',
@@ -153,12 +155,10 @@ class ApiService {
       body: JSON.stringify(data),
     });
     const result = await this.login({ email: data.email, password: data.password });
-    // Override the email-derived username with the one the user actually registered with
     return { user: { ...result.user, username: data.username } };
   }
 
   async refresh(): Promise<void> {
-    // allowRetry=false to prevent infinite loop
     const data = await this.fetchJson<{ token: string }>(
         '/api/auth/refresh',
         { method: 'POST' },
@@ -175,7 +175,6 @@ class ApiService {
     }
   }
 
-  // Called on app mount — restores the session silently using the httpOnly refresh cookie
   async restoreSession(): Promise<User | null> {
     try {
       await this.refresh();
