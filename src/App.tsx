@@ -18,6 +18,8 @@ export default function App() {
   const [availableTags, setAvailableTags] = useState<{ name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [newTagInput, setNewTagInput] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [publishing, setPublishing] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -32,6 +34,18 @@ export default function App() {
       try { setUser(JSON.parse(savedUser)); }
       catch { localStorage.removeItem('user'); }
     }
+    const restore = async () => {
+      let restoredUser = await api.restoreSession();
+      if (!restoredUser) {
+        await new Promise(r => setTimeout(r, 1000));
+        restoredUser = await api.restoreSession();
+      }
+      if (restoredUser) {
+        setUser(restoredUser);
+        localStorage.setItem('user', JSON.stringify(restoredUser));
+      }
+    };
+    restore();
   }, []);
 
   useEffect(() => {
@@ -60,7 +74,7 @@ export default function App() {
     }
   }, [view]);
 
-  const handlePublish = async () => {
+  const handlePublish = async (status: 'PUBLISHED' | 'DRAFT' = 'PUBLISHED') => {
     if (!newThought.content || !newThought.title || !selectedCategory || selectedTags.length === 0) {
       notify('Please fill in title, content, category and at least one tag.', 'info');
       return;
@@ -69,13 +83,21 @@ export default function App() {
     const payload = {
       title: newThought.title,
       content: newThought.content,
-      status: 'PUBLISHED' as const,
+      status,
       category: { name: selectedCategory },
       tags: selectedTags.map(name => ({ name })),
     };
 
     setPublishing('loading');
     try {
+      // Create any tags that don't exist yet before submitting the post
+      for (const tagName of selectedTags) {
+        if (!availableTags.find(t => t.name === tagName)) {
+          const created = await api.createTag(tagName);
+          setAvailableTags(prev => [...prev, created]);
+        }
+      }
+
       if (editingPost) {
         const updated = await api.updatePost(editingPost.id, payload);
         setThoughts(prev => prev.map(t => t.id === updated.id ? updated : t));
@@ -91,6 +113,7 @@ export default function App() {
       setView('discovery');
       setNewThought({ title: '', content: '' });
       setSelectedTags([]);
+      setNewTagInput('');
       setEditingPost(null);
       setPublishing('idle');
       setCurtain('up');
@@ -134,16 +157,19 @@ export default function App() {
   const handleLogin = async (credentials: { email: string; password: string }) => {
     const data = await api.login(credentials);
     setUser(data.user);
+    localStorage.setItem('user', JSON.stringify(data.user));
   };
 
   const handleRegister = async (data: { username: string; email: string; password: string }) => {
     const result = await api.register(data);
     setUser(result.user);
+    localStorage.setItem('user', JSON.stringify(result.user));
   };
 
   const handleLogout = async () => {
     await api.logout();
     setUser(null);
+    localStorage.removeItem('user');
     setView('discovery');
   };
 
@@ -157,6 +183,7 @@ export default function App() {
       setEditingPost(null);
       setNewThought({ title: '', content: '' });
       setSelectedTags([]);
+      setNewTagInput('');
     }
     setView(newView);
   };
@@ -164,7 +191,6 @@ export default function App() {
   return (
       <div className="min-h-screen bg-white relative">
 
-        {/* Curtain transition */}
         <AnimatePresence>
           {curtain !== 'none' && (
               <motion.div
@@ -177,7 +203,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Notification modal */}
         <AnimatePresence>
           {notification && (
               <motion.div
@@ -209,7 +234,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Delete confirmation modal */}
         <AnimatePresence>
           {deleteConfirm && (
               <motion.div
@@ -247,7 +271,8 @@ export default function App() {
 
         <TopBar
             showPublish={view === 'compose'}
-            onPublish={handlePublish}
+            onPublish={() => handlePublish('PUBLISHED')}
+            onSaveDraft={() => handlePublish('DRAFT')}
             publishing={publishing}
             currentView={view}
             onViewChange={handleViewChange}
@@ -348,36 +373,84 @@ export default function App() {
                   <div className="mt-10 space-y-6">
                     <div>
                       <span className="text-[11px] font-bold uppercase tracking-widest text-black/40 block mb-3">Category</span>
-                      <select
-                          value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="w-full border border-black/15 p-3 text-sm outline-none focus:border-black transition-colors"
-                      >
-                        <option value="">Select a category...</option>
-                        {categories.map(c => (
-                            <option key={c.name} value={c.name}>{c.name}</option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <input
+                            type="text"
+                            value={selectedCategory}
+                            onChange={(e) => { setSelectedCategory(e.target.value); setShowCategoryDropdown(true); }}
+                            onFocus={() => setShowCategoryDropdown(true)}
+                            onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 150)}
+                            placeholder="Select or type a new category..."
+                            className="w-full border border-black/15 p-3 text-sm outline-none focus:border-black transition-colors"
+                        />
+                        {showCategoryDropdown && (
+                            <div className="absolute z-10 w-full bg-white border border-black/10 shadow-lg mt-0.5 max-h-48 overflow-y-auto">
+                              {categories
+                                  .filter(c => c.name.toLowerCase().includes(selectedCategory.toLowerCase()))
+                                  .map(c => (
+                                      <div
+                                          key={c.name}
+                                          onMouseDown={() => { setSelectedCategory(c.name); setShowCategoryDropdown(false); }}
+                                          className="px-3 py-2.5 text-sm cursor-pointer hover:bg-black/5 transition-colors"
+                                      >
+                                        {c.name}
+                                      </div>
+                                  ))}
+                              {selectedCategory && !categories.find(c => c.name.toLowerCase() === selectedCategory.toLowerCase()) && (
+                                  <div className="px-3 py-2.5 text-sm text-black/40 border-t border-black/5">
+                                    Create <span className="font-semibold text-black">"{selectedCategory}"</span>
+                                  </div>
+                              )}
+                            </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <span className="text-[11px] font-bold uppercase tracking-widest text-black/40 block mb-3">Tags</span>
-                      <div className="flex flex-wrap gap-2">
-                        {availableTags.map(tag => (
+                      {selectedTags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {selectedTags.map(tag => (
+                                <span key={tag} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-black text-white">
+                                  #{tag}
+                                  <button
+                                      type="button"
+                                      onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                                      className="ml-0.5 hover:text-white/60 transition-colors leading-none"
+                                  >×</button>
+                                </span>
+                            ))}
+                          </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {availableTags.filter(t => !selectedTags.includes(t.name)).map(tag => (
                             <button
                                 key={tag.name}
                                 type="button"
-                                onClick={() => setSelectedTags(prev =>
-                                    prev.includes(tag.name) ? prev.filter(t => t !== tag.name) : [...prev, tag.name]
-                                )}
-                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${selectedTags.includes(tag.name) ? 'bg-black text-white border-black' : 'border-black/20 text-black/60 hover:border-black/40'}`}
+                                onClick={() => setSelectedTags(prev => [...prev, tag.name])}
+                                className="px-3 py-1.5 rounded-full text-sm font-medium border border-black/20 text-black/60 hover:border-black/40 transition-all"
                             >
                               #{tag.name}
                             </button>
                         ))}
-                        {availableTags.length === 0 && (
-                            <p className="text-xs text-black/30">No tags yet.</p>
-                        )}
+                      </div>
+                      <div className="flex items-center gap-2 border border-black/15 px-3 py-2.5 focus-within:border-black transition-colors">
+                        <span className="text-black/30 text-sm font-semibold">#</span>
+                        <input
+                            type="text"
+                            value={newTagInput}
+                            onChange={(e) => setNewTagInput(e.target.value.replace(/\s/g, ''))}
+                            onKeyDown={(e) => {
+                              if ((e.key === 'Enter' || e.key === ',') && newTagInput.trim()) {
+                                e.preventDefault();
+                                const tagName = newTagInput.trim().toLowerCase();
+                                if (!selectedTags.includes(tagName)) setSelectedTags(prev => [...prev, tagName]);
+                                setNewTagInput('');
+                              }
+                            }}
+                            placeholder="New tag, press Enter to add..."
+                            className="flex-1 text-sm outline-none bg-transparent text-zinc-700 placeholder-zinc-300"
+                        />
                       </div>
                     </div>
 

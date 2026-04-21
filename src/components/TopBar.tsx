@@ -6,6 +6,7 @@ import { Home, PenLine, User as UserIcon, LogOut, Search, Loader2, Check } from 
 interface TopBarProps {
     showPublish: boolean;
     onPublish: () => void;
+    onSaveDraft: () => void;
     publishing: 'idle' | 'loading' | 'success';
     currentView: View;
     onViewChange: (view: View) => void;
@@ -21,6 +22,7 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({
                                                   showPublish,
                                                   onPublish,
+                                                  onSaveDraft,
                                                   publishing,
                                                   currentView,
                                                   onViewChange,
@@ -96,15 +98,11 @@ export const TopBar: React.FC<TopBarProps> = ({
         <>
             <header className="fixed top-0 inset-x-0 z-50 h-14 bg-white/70 backdrop-blur-xl border-b border-black/[0.06] flex items-center px-5 gap-4">
 
-                {/* Logo — left */}
                 <div className="font-black text-[15px] tracking-tighter select-none shrink-0 text-zinc-900">
                     thoughts
                 </div>
 
-                {/* Center — nav + search */}
                 <div className="flex-1 flex items-center justify-center gap-2">
-
-                    {/* Nav pills */}
                     <div className="flex items-center gap-0.5 bg-black/[0.04] rounded-full p-1">
                         <NavBtn
                             icon={Home}
@@ -122,7 +120,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                         )}
                     </div>
 
-                    {/* Search */}
                     <div className="flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.06] border border-transparent focus-within:border-black/10 focus-within:bg-white px-3 py-1.5 rounded-full transition-all w-44">
                         <Search size={13} className="text-black/30 shrink-0" />
                         <input
@@ -134,7 +131,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                     </div>
                 </div>
 
-                {/* Right — auth / user + publish */}
                 <div className="flex items-center gap-2 shrink-0">
                     {user ? (
                         <>
@@ -172,29 +168,41 @@ export const TopBar: React.FC<TopBarProps> = ({
 
                     <AnimatePresence>
                         {showPublish && (
-                            <motion.button
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.15 }}
-                                onClick={onPublish}
-                                disabled={publishing !== 'idle'}
-                                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all disabled:opacity-60 ${
-                                    publishing === 'success'
-                                        ? 'bg-emerald-500 text-white'
-                                        : 'bg-black text-white hover:bg-zinc-800'
-                                }`}
-                            >
-                                {publishing === 'loading' && <Loader2 size={12} className="animate-spin" />}
-                                {publishing === 'success' && <Check size={12} />}
-                                {publishLabel}
-                            </motion.button>
+                            <>
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.15 }}
+                                    onClick={onSaveDraft}
+                                    disabled={publishing !== 'idle'}
+                                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-semibold border border-black/20 text-black/60 hover:text-black hover:border-black/40 transition-all disabled:opacity-60"
+                                >
+                                    Draft
+                                </motion.button>
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.15 }}
+                                    onClick={onPublish}
+                                    disabled={publishing !== 'idle'}
+                                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all disabled:opacity-60 ${
+                                        publishing === 'success'
+                                            ? 'bg-emerald-500 text-white'
+                                            : 'bg-black text-white hover:bg-zinc-800'
+                                    }`}
+                                >
+                                    {publishing === 'loading' && <Loader2 size={12} className="animate-spin" />}
+                                    {publishing === 'success' && <Check size={12} />}
+                                    {publishLabel}
+                                </motion.button>
+                            </>
                         )}
                     </AnimatePresence>
                 </div>
             </header>
 
-            {/* Auth modal */}
             <AnimatePresence>
                 {authModal !== 'none' && (
                     <motion.div
@@ -372,7 +380,7 @@ const NavBtn = ({
     active: boolean;
     onClick: () => void;
 }) => (
-    <button
+    <button2
         onClick={onClick}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all ${
             active
@@ -382,5 +390,5 @@ const NavBtn = ({
     >
         <Icon size={14} />
         <span>{label}</span>
-    </button>
+    </button2>
 );

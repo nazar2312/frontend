@@ -31,23 +31,32 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({
   const canModify =
       currentUser?.email === thought.author.email || currentUser?.role === 'ADMIN';
 
+  const isDraft = thought.status === 'DRAFT';
+
   return (
       <motion.article
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="h-full flex flex-col justify-between p-6 rounded-3xl relative overflow-hidden
-        bg-white/50 backdrop-blur-2xl border border-white/80
-        shadow-[0_2px_12px_rgba(0,0,0,0.05),0_12px_40px_rgba(0,0,0,0.08)]
-        hover:shadow-[0_4px_16px_rgba(0,0,0,0.08),0_20px_56px_rgba(0,0,0,0.11)]
-        hover:bg-white/65 transition-all duration-300 cursor-pointer"
+          className={`h-full flex flex-col justify-between p-6 rounded-3xl relative overflow-hidden backdrop-blur-2xl transition-all duration-300 cursor-pointer ${
+              isDraft
+                  ? 'bg-amber-50/70 border border-dashed border-amber-200 shadow-[0_2px_12px_rgba(0,0,0,0.03),0_12px_40px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06),0_20px_56px_rgba(0,0,0,0.08)] hover:bg-amber-50/90'
+                  : 'bg-white/50 border border-white/80 shadow-[0_2px_12px_rgba(0,0,0,0.05),0_12px_40px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08),0_20px_56px_rgba(0,0,0,0.11)] hover:bg-white/65'
+          }`}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+        <div className={`absolute inset-0 bg-gradient-to-b pointer-events-none ${isDraft ? 'from-amber-100/30 to-transparent' : 'from-white/40 to-transparent'}`} />
 
         <div className="relative">
-          {thought.category && (
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 bg-black/5 px-2.5 py-1 rounded-full mb-4 inline-block">
-            {thought.category.name}
-          </span>
-          )}
+          <div className="flex items-start justify-between gap-2 mb-4">
+            {thought.category && (
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 bg-black/5 px-2.5 py-1 rounded-full inline-block">
+              {thought.category.name}
+            </span>
+            )}
+            {isDraft && (
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-100 px-2.5 py-1 rounded-full shrink-0">
+              Draft
+            </span>
+            )}
+          </div>
           <h2 className="text-[18px] font-bold text-zinc-900 leading-snug tracking-tight mb-3">
             {thought.title}
           </h2>
